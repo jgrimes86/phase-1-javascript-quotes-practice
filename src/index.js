@@ -39,15 +39,45 @@ function pagePopulator(quotes) {
 
         let likes = document.createElement('span')
         likes.innerText = quote.likes.length;
-
         successButton.append(likes);
 
         let dangerButton = document.createElement('button');
         dangerButton.className = 'btn-danger';
         dangerButton.innerText = 'Delete'
-        dangerButton.addEventListener('click', deleteQuote)
+        dangerButton.addEventListener('click', deleteQuote);
 
-        blockquote.append(p, footer, br, successButton, dangerButton);
+        let editButton = document.createElement('button');
+        editButton.className = 'btn-success';
+        editButton.innerText = 'Edit';
+        editButton.style.backgroundColor = 'blue';
+        editButton.style.borderColor = 'blue';
+        editButton.addEventListener('click', openEditForm);
+
+        let editForm = document.createElement('form');
+        editForm.id = 'edit-form';
+        editForm.hidden = true;
+
+        let quoteInput = document.createElement('input');
+        quoteInput.name = 'quote';
+        quoteInput.type = 'text';
+        quoteInput.style.class = "form-control";
+        quoteInput.defaultValue = quote.quote;
+
+        let authorInput = document.createElement('input');
+        authorInput.name = 'author';
+        authorInput.type = 'text';
+        authorInput.style.class = "form-control";
+        authorInput.defaultValue = quote.author;
+
+        let submitButton = document.createElement('button');
+        submitButton.type = 'submit';
+        submitButton.style.class = "btn btn-primary";
+        submitButton.innerText = 'Submit';
+
+        editForm.append(quoteInput, authorInput, submitButton);
+        editForm.addEventListener('submit', editBookInfo)
+
+        blockquote.append(p, footer, br, successButton, dangerButton, editButton, editForm);
         
         quoteList.append(li)
     })
@@ -57,6 +87,8 @@ function likeQuote(event) {
     let quoteIdstring = event.target.parentElement.dataset.quoteId;
     let quoteId = parseInt(quoteIdstring, 10);
 
+    // let createdAt = new Date();
+
     fetch(likesDatabase, {
         method: 'POST',
         headers: {
@@ -65,6 +97,7 @@ function likeQuote(event) {
         },
         body: JSON.stringify({
             'quoteId': quoteId,
+            'createdAt': createdAt,
         }),
     })
     .then(quotesFetcher)
@@ -72,7 +105,6 @@ function likeQuote(event) {
 
 function deleteQuote(event) {
     let quoteId = parseInt(event.target.parentElement.dataset.quoteId, 10)
-
     fetch(quotesDatabase+'/'+quoteId, {
         method: 'DELETE',
     })
@@ -84,10 +116,8 @@ form.addEventListener('submit', addQuote);
 
 function addQuote(event) {
     event.preventDefault();
-
     let quote = event.target.quote.value;
     let author = event.target.author.value;
-
     fetch(quotesDatabase, {
         method: 'POST',
         headers: {
@@ -100,4 +130,42 @@ function addQuote(event) {
         })
     })
     .then(quotesFetcher)
+}
+
+function openEditForm(event) {
+    let editForm = event.target.parentElement.querySelector('#edit-form');
+    if (editForm.hidden == true) {
+        editForm.hidden = false;
+    } else if (editForm.hidden == false) {
+        editForm.hidden = true
+    }
+}
+
+function editBookInfo(event) {
+    event.preventDefault();
+    let targetQuote = event.target.parentElement.querySelector('p');
+    let targetAuthor = event.target.parentElement.querySelector('footer');
+    let quoteId = parseInt(event.target.parentElement.dataset.quoteId, 10)
+
+    let newQuote = event.target.quote.value;
+    let newAuthor = event.target.author.value;
+    
+    targetQuote.innerText = newQuote;
+    targetAuthor.innerText = newAuthor;
+
+    updateDatabaseItem(newQuote, newAuthor, quoteId);
+    // event.target.reset()
+}
+
+function updateDatabaseItem(newQuote, newAuthor, quoteId) {
+    fetch(quotesDatabase+'/'+quoteId, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            'quote': newQuote,
+            'author': newAuthor
+        })
+    })
 }
